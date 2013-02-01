@@ -3,18 +3,12 @@ package com.teste.testewebservice;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
-import org.ksoap2.SoapEnvelope;
-import org.ksoap2.serialization.PropertyInfo;
-import org.ksoap2.serialization.SoapObject;
-import org.ksoap2.serialization.SoapPrimitive;
-import org.ksoap2.serialization.SoapSerializationEnvelope;
-import org.ksoap2.transport.AndroidHttpTransport;
-import org.xmlpull.v1.XmlPullParserException;
+
 import android.app.Activity;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
-import android.view.Menu;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
@@ -22,20 +16,16 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-public class WebServiceTeste extends Activity {
+public class WebServiceTeste extends Activity implements Runnable {
 
+	private Thread th;
 	private EditText sigla;
 	private TextView txvretorno;
 	private ImageView bandeira;
 	private Button carregar;
-	private AndroidHttpTransport transporte;
-	private SoapObject soapOb;
-	private SoapSerializationEnvelope envelope;
-	private String NAMESPACE = "http://www.oorsprong.org/websamples.countryinfo";
-	private String METHOD_NAME = "CountryFlag";
-	private String URL = "http://www.oorsprong.org/websamples.countryinfo/CountryInfoService.wso";
-	private String SOAP_ACTION = "http://www.oorsprong.org/websamples.countryinfo/CountryInfoService.wso?op=CountryFlag";
-	private String resposta;
+	private Button mostrarBandeira;
+	private Handler h;
+	private Drawable img;
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -46,68 +36,59 @@ public class WebServiceTeste extends Activity {
 		txvretorno = (TextView) findViewById(R.id.retorno);
 		carregar = (Button) findViewById(R.id.btncarregar);
 		bandeira = (ImageView) findViewById(R.id.imgbandeira);
+		mostrarBandeira = (Button) findViewById(R.id.btncarregarBandeira);
+
+		h = new Handler();
 
 		carregar.setOnClickListener(new OnClickListener() {
 
 			public void onClick(View v) {
 
-				soapOb = new SoapObject(NAMESPACE, METHOD_NAME);
-				PropertyInfo pi = new PropertyInfo();
-				pi.setName("sCountryISOCode");
-				pi.setType(String.class);
-				pi.setValue(sigla.getText().toString());
-				soapOb.addProperty(pi);
+				ConectWebService cws = new ConectWebService(txvretorno,
+						mostrarBandeira, carregar);
 
-				envelope = new SoapSerializationEnvelope(SoapEnvelope.VER11);
-				envelope.setOutputSoapObject(soapOb);
-				// envelope.dotNet = true;
+				cws.execute(sigla.getText().toString());
 
-				transporte = new AndroidHttpTransport(URL);
+			}
 
-				try {
-					transporte.call(SOAP_ACTION, envelope);
-					SoapPrimitive retorno = (SoapPrimitive) envelope
-							.getResponse();
-					resposta = retorno.toString();
-					txvretorno.setText(resposta);
-					bandeira.setImageDrawable(geraImgByUrl(retorno.toString()));
-					bandeira.setVisibility(0);
+		});
 
-				} catch (IOException e) {
-					Log.e("Erro WebService", "transporte");
-					e.printStackTrace();
-				} catch (XmlPullParserException e) {
-					Log.e("Erro WebService", "conversao");
-					e.printStackTrace();
-				}
+		mostrarBandeira.setOnClickListener(new OnClickListener() {
+
+			public void onClick(View v) {
+
+				th = new Thread(WebServiceTeste.this);
+				th.start();
 
 			}
 		});
 
 	}
 
-	private Drawable geraImgByUrl(String url) {
+	public void run() {
 
 		try {
+			
+			InputStream is = (InputStream) new java.net.URL(txvretorno
+					.getText().toString()).getContent();
+			img = Drawable.createFromStream(is, "src name");
 
-			InputStream is = (InputStream) new java.net.URL(url).getContent();
-			Drawable img = Drawable.createFromStream(is, "src name");
-			return img;
+			h.post(new Runnable() {
+
+				public void run() {
+					bandeira.setImageDrawable(img);
+					bandeira.setVisibility(0);
+				}
+			});
+
 		} catch (MalformedURLException e) {
-			Log.e("geraImg", e.getMessage().toString());
-			e.printStackTrace();
+
+			Log.e("Erro Url", "Erro Url IMG", e);
 		} catch (IOException e) {
-			Log.e("geraImg", e.getMessage().toString());
-			e.printStackTrace();
+
+			Log.e("Erro IO", "Erro IMG", e);
 		}
 
-		return null;
-	}
-
-	@Override
-	public boolean onCreateOptionsMenu(Menu menu) {
-		getMenuInflater().inflate(R.menu.activity_web_service_teste, menu);
-		return true;
-	}
+	};
 
 }
