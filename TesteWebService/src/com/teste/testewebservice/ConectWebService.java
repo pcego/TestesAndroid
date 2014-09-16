@@ -14,6 +14,7 @@ import android.util.Log;
 import android.widget.Button;
 import android.widget.TextView;
 
+// Tarefa Assíncrona
 public class ConectWebService extends AsyncTask<String, Void, String> {
 
 	private TextView url;
@@ -29,6 +30,7 @@ public class ConectWebService extends AsyncTask<String, Void, String> {
 	private String resposta;
 	private SoapPrimitive retorno;
 
+	//construtor sobrecarregado
 	public ConectWebService(TextView url,Button band, Button exec) {
 		super();
 		this.url = url;
@@ -51,7 +53,8 @@ public class ConectWebService extends AsyncTask<String, Void, String> {
 		exec.setEnabled(false);		
 		super.onPreExecute();
 	}
-
+	
+	// método executado em uma Thread a parte
 	@Override
 	protected String doInBackground(String... params) {
 		String sigla = params[0];
